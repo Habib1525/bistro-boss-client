@@ -3,12 +3,14 @@ import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { AuthContext } from "../../providers/AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
+import useAxiosPublic from "../../hooks/useAxiosPublic";
+import SocialLogin from "../../Components/SocialLogin/SocialLogin";
 
 const SignUp = () => {
-  
-   const { createUser, updateUserProfile } = useContext(AuthContext);
-   const navigate = useNavigate();
+  const axiosPublic = useAxiosPublic();
+  const { createUser, updateUserProfile } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const {
     register,
@@ -19,25 +21,33 @@ const SignUp = () => {
 
   const onSubmit = (data) => {
     console.log(data);
-    createUser(data.email, data.password)
-    .then(result => {
+    createUser(data.email, data.password).then((result) => {
       const loggedUser = result.user;
       console.log(loggedUser);
       updateUserProfile(data.name, data.photoURL)
-      .then(() => {
-        console.log('user profile info updated')
-        reset();
-        Swal.fire({
-          position: "top-end",
-          icon: "success",
-          title: "User created Successfully",
-          showConfirmButton: false,
-          timer: 1500
-        });
-        navigate('/');
-      })
-      .catch(error => console.log(error))
-    })
+        .then(() => {
+          // user info updated in database
+          const userInfo = {
+            name: data.name,
+            email: data.email
+          };
+          axiosPublic.post("/users", userInfo).then((res) => {
+            if (res.data.insertedId) {
+              reset();
+              Swal.fire({
+                position: "top-end",
+                icon: "success",
+                title: "User created Successfully",
+                showConfirmButton: false,
+                timer: 1500,
+              });
+            }
+          });
+
+          navigate("/");
+        })
+        .catch((error) => console.log(error));
+    });
   };
   return (
     <>
@@ -78,7 +88,6 @@ const SignUp = () => {
                 <input
                   type="text"
                   {...register("photoURL", { required: true })}
-                 
                   placeholder="Photo URL"
                   className="input input-bordered"
                 />
@@ -143,7 +152,12 @@ const SignUp = () => {
                 />
               </div>
             </form>
-            <p><small>Already have an account? <Link to="/login">Log in</Link></small></p>
+            <p className="px-6">
+              <small>
+                Already have an account? <Link to="/login">Log in</Link>
+              </small>
+            </p>
+            <SocialLogin></SocialLogin>
           </div>
         </div>
       </div>
